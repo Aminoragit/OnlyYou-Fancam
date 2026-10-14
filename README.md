@@ -13,17 +13,19 @@
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-DNN-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
+[![MCP Server](https://img.shields.io/badge/MCP-Protocol_2024--11--05-brightgreen.svg?logo=anthropic&logoColor=white)](#-ai-mcp-서버-연동-model-context-protocol)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](#)
 
 <br/>
 
-<img src="web/static/default_poster.png" alt="OnlyYou-Fancam Banner" width="480" style="border-radius: 18px; box-shadow: 0 16px 40px rgba(0,0,0,0.6);" />
+<img src="web/static/banner.png" alt="OnlyYou-Fancam Banner" width="100%" style="border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);" />
 
 <br/>
 <br/>
 
 **OnlyYou-Fancam**은 복잡한 무대 군무, 방송 직캠, 스포츠 경기 영상에서 다수의 인물을 자동으로 감지·분류하고,  
-선택된 단 한 명의 퍼포머만을 안정적으로 추적하여 **완벽한 9:16 세로 직캠 MP4**로 자동 렌더링하는 오픈소스 솔루션입니다.
+선택된 단 한 명의 퍼포머만을 안정적으로 추적하여 **완벽한 9:16 세로 직캠 MP4**로 자동 렌더링하는 오픈소스 솔루션입니다.  
+최신 **Model Context Protocol (MCP)**를 기본 탑재하여 Claude Desktop, Cursor, Antigravity 등 AI 어시스턴트가 자연어로 직접 직캠을 생성할 수 있습니다.
 
 </div>
 
@@ -34,8 +36,9 @@
 - [🇰🇷 한국어](#-한국어-메인-문서)
   - [핵심 기능](#-핵심-기능-key-features)
   - [아키텍처 및 기술 혁신](#-아키텍처-및-기술-혁신)
-  - [설치 및 시작하기](#-설치-및-빠른-시작-quick-start)
-  - [웹 스튜디오 사용법](#-apple-스타일-웹-스튜디오-사용법)
+  - [설치 및 빠른 시작](#-설치-및-빠른-시작-quick-start)
+  - [AI MCP 서버 연동 (Model Context Protocol)](#-ai-mcp-서버-연동-model-context-protocol)
+  - [Apple 스타일 웹 스튜디오](#-apple-스타일-웹-스튜디오-사용법)
   - [CLI 사용법](#-cli-직접-실행)
   - [품질 검증 실측치](#-품질-검증-실측치-qa-metrics)
 - [🇺🇸 English](#-english)
@@ -60,18 +63,21 @@
 - 🎬 **H.264 Faststart & 무손실 A/V 싱크**
   - MP4 메타데이터(`moov` atom)를 헤더에 배치하여 웹 브라우저에서 다운로드 완료를 기다리지 않고 즉시 스트리밍 재생할 수 있습니다.
   - 원본 오디오(AAC 192k)를 샘플 단위로 동기화하여 A/V 싱크 편차를 15ms 이하로 보장합니다.
+- 🔌 **AI 네이티브 MCP 서버 내장 (Model Context Protocol)**
+  - 외장 라이브러리 설치 없이 순수 Python 표준 라이브러리 기반 JSON-RPC 2.0 stdio MCP 서버(`mcp_server.py`)를 기본 제공합니다.
+  - Claude Desktop, Cursor, Antigravity 등의 AI에게 자연어로 "직캠 만들어줘"라고 지시하면 AI가 직접 렌더링하고 결과를 제공합니다.
 - 💎 **Apple 감성의 미니멀 웹 스튜디오**
   - 불필요한 개발자성 지표를 모두 배제한 오닉스 블랙 & 프로스티드 글래스 인터페이스를 제공합니다.
   - 로컬 파일 드래그 앤 드롭, 로컬 경로 입력, 유튜브 링크(`youtube.com`, `youtu.be`, `shorts`)를 단일 옴니바에서 자동 처리합니다.
 - 🔓 **순수 Apache 2.0 라이선스 준수**
-  - Git 저장소에 12MB 상당의 AI 모델 바이너리를 포함하지 않고 첫 실행 시 자동 다운로드하여, AGPL 저작권 전염 걱정 없이 기업/상업 환경에서도 안전하게 사용 가능합니다.
+  - Git 저장소에 AI 모델 바이너리를 포함하지 않고 첫 실행 시 자동 다운로드하여, AGPL 저작권 전염 걱정 없이 기업/상업 환경에서도 안전하게 사용 가능합니다.
 
 ---
 
 ### 🧠 아키텍처 및 기술 혁신
 
 ```
-[입력 영상 / YouTube URL]
+[입력 영상 / YouTube URL / AI MCP 호출]
         │
         ▼
 [Fast Lane: 4 FPS 적응형 스캔]
@@ -126,6 +132,61 @@ python main.py --youtube "https://www.youtube.com/watch?v=JNqluYsjzac"
 
 ---
 
+### 🔌 AI MCP 서버 연동 (Model Context Protocol)
+
+**OnlyYou-Fancam**은 [Anthropic Model Context Protocol (MCP)](https://modelcontextprotocol.io/)을 지원하여, **Claude Desktop**, **Cursor**, **Antigravity** 등 최신 AI 에이전트 환경에서 도구로 등록해 사용할 수 있습니다.
+
+#### 🛠️ MCP 서버 자체 테스트
+```bash
+python mcp_server.py --test
+```
+
+#### ⚙️ Claude Desktop 연동 설정
+`%APPDATA%\Claude\claude_desktop_config.json` (Windows) 또는 `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) 파일에 아래 내용을 추가합니다:
+
+```json
+{
+  "mcpServers": {
+    "onlyyou-fancam": {
+      "command": "python",
+      "args": [
+        "d:/video_target_tracker/mcp_server.py"
+      ]
+    }
+  }
+}
+```
+*(※ 경로 `d:/video_target_tracker`는 실제 설치된 경로로 지정하십시오.)*
+
+#### ⚙️ Cursor / Antigravity 연동 설정
+프로젝트 루트 또는 설정의 `mcp.json`에 등록합니다:
+
+```json
+{
+  "mcpServers": {
+    "onlyyou-fancam": {
+      "command": "python",
+      "args": ["mcp_server.py"]
+    }
+  }
+}
+```
+
+#### 🧰 제공되는 AI MCP 도구 목록
+| 도구 이름 | 설명 | 주요 인자 |
+| :--- | :--- | :--- |
+| `create_fancam` | 영상(로컬/유튜브)을 분석하여 선택된 멤버 또는 전원의 9:16 직캠 비디오를 즉시 생성합니다. | `video_source`, `target_person_id`, `start_sec`, `end_sec` |
+| `inspect_performers` | 렌더링 전 영상 내 출연자 수, 신뢰도, 대표 썸네일 및 타임스탬프를 빠르게 스캔합니다. | `video_source`, `start_sec`, `end_sec` |
+| `get_job_status` | 특정 작업 ID의 진행률, 내보내기 완료 파일 목록, QA 품질 보고서를 조회합니다. | `job_id` |
+| `list_jobs` | 로컬에 생성된 최근 직캠 작업 내역 및 파일 목록을 확인합니다. | `limit` |
+| `download_youtube` | `yt-dlp`를 사용하여 유튜브 영상의 특정 구간을 로컬로 다운로드합니다. | `url`, `start_sec`, `end_sec` |
+
+#### 💬 AI 대화 사용 예시
+> **사용자**: "다운로드된 `storage/test_data/dancers.mp4` 영상에서 중앙 댄서 직캠 만들어줘."  
+> **Claude / Cursor**: *OnlyYou-Fancam MCP 도구(`create_fancam`)를 호출하여 7명의 출연자를 분석하고 9:16 MP4 직캠을 자동 렌더링한 후 파일 경로를 전달합니다.*
+
+---
+
 ### 🖥️ Apple 스타일 웹 스튜디오 사용법
 
 1. **단일 옴니바(Omnibar)에 입력**:
@@ -157,27 +218,27 @@ python main.py --youtube "https://www.youtube.com/watch?v=JNqluYsjzac"
 ## 🇺🇸 English
 
 ### Overview
-**OnlyYou-Fancam** is an open-source AI studio that automatically detects and clusters individuals in multi-person performance videos and renders individual **cinematic 9:16 vertical fancams (720x1280 MP4)**.
+**OnlyYou-Fancam** is an open-source AI studio that automatically detects and clusters individuals in multi-person performance videos and renders individual **cinematic 9:16 vertical fancams (720x1280 MP4)**. It includes native **Model Context Protocol (MCP)** server integration for AI coding assistants like Claude Desktop, Cursor, and Antigravity.
 
 ### Highlights
 - **Strict 9:16 Centering & Boundary Black Padding**: The performer remains dead-center even when moving off-stage ($X < 0$ or $X > 1$). Out-of-bounds regions are filled with clean pure black without distortion.
 - **Zero Wide-Fallback & Smooth Re-acquisition**: Temporary occlusion or stage exit does not trigger a wide-angle dropout. The camera maintains the last tracked position and smoothly glides to re-acquire the performer.
 - **Zero-Phase Gimbal-Grade Motion**: Forward-backward Gaussian smoothing combined with velocity-adaptive filtering completely eliminates arm-flutter vibration (Mean Jerk $\le 0.01\text{ norm/s}^3$).
+- **AI-Native MCP Server**: Directly controllable via Claude Desktop, Cursor, and Antigravity through standard JSON-RPC 2.0 stdio tools (`create_fancam`, `inspect_performers`, `get_job_status`).
 - **Apple-Inspired Web Studio**: Minimalist Onyx Black & Frosted Glass interface with drag-and-drop, YouTube auto-downloader via `yt-dlp`, and single-click export downloads.
 - **Pure Apache 2.0 Compliance**: AI model weights are fetched on-demand at first launch, keeping the repository 100% clean Apache-2.0.
 
-### Quick Start
-```bash
-git clone https://github.com/Aminoragit/OnlyYou-Fancam.git
-cd OnlyYou-Fancam
-pip install -r requirements.txt
-
-# Start Web Studio
-python main.py
-
-# CLI Usage
-python main.py --video "path/to/video.mp4"
-python main.py --youtube "https://www.youtube.com/watch?v=..."
+### Claude Desktop MCP Setup
+Add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "onlyyou-fancam": {
+      "command": "python",
+      "args": ["/path/to/OnlyYou-Fancam/mcp_server.py"]
+    }
+  }
+}
 ```
 
 ---
@@ -185,23 +246,27 @@ python main.py --youtube "https://www.youtube.com/watch?v=..."
 ## 🇯🇵 日本語
 
 ### 概要
-**OnlyYou-Fancam**は、ステージダンスやスポーツなどの複数人映像から各出演者をAIで自動認識・分類し、指定したパフォーマーを常に画面中央に捉える**9:16縦型チッケム（Fancam）MP4**を自動生成するオープンソースツールです。
+**OnlyYou-Fancam**は、ステージダンスやスポーツなどの複数人映像から各出演者をAIで自動認識・分類し、指定したパフォーマーを常に画面中央に捉える**9:16縦型チッケム（Fancam）MP4**を自動生成するオープンソースツールです。**Model Context Protocol (MCP)**を内蔵し、Claude DesktopやCursorなどのAIから自然言語で直接チッケムを生成できます。
 
 ### 主な特徴
 - **厳格な9:16中央維持と黒帯パディング**: 被写体が画面外($X < 0$ または $X > 1$)に移動しても、9:16比率と中央配置を維持し、はみ出た部分は歪みなく純黒でパディングします。
 - **全景引き（Wide Fallback）の完全排除**: 一時的な遮蔽や退場時にも不自然な全体ショットへ引かず、最終位置を滑らかに維持して再登場時にスムーズに追従（Glide）します。
 - **超低ジャーク・ジンバル級の安定化**: 双方向ゼロ位相（Zero-Phase）フィルターにより、手足の激しい動きによる微小なブレやカメラの迷いを徹底的に抑制しました。
+- **AI MCPサーバー標準搭載**: Claude DesktopやCursorに登録することで、「この動画から直カムを作って」と指示するだけでAIが自動生成を実行します。
 - **洗練されたApple風Webスタジオ**: 余計な数値を省いた直感的なオムニバー、ドラッグ＆ドロップ、YouTube自動ダウンロード、ワンクリック保存に対応しています。
 - **完全なApache 2.0ライセンス**: モデルバイナリは初回起動時に自動ダウンロードされるため、AGPL感染リスクのない安全なオープンソースです。
 
-### 使い方
-```bash
-git clone https://github.com/Aminoragit/OnlyYou-Fancam.git
-cd OnlyYou-Fancam
-pip install -r requirements.txt
-
-# Webスタジオ起動
-python main.py
+### Claude Desktop 設定方法
+`claude_desktop_config.json` に以下を追加:
+```json
+{
+  "mcpServers": {
+    "onlyyou-fancam": {
+      "command": "python",
+      "args": ["/path/to/OnlyYou-Fancam/mcp_server.py"]
+    }
+  }
+}
 ```
 
 ---
@@ -209,23 +274,27 @@ python main.py
 ## 🇨🇳 简体中文
 
 ### 项目简介
-**OnlyYou-Fancam** 是一款基于人工智能的多目标跟踪与直拍（Fancam）自动生成系统。该系统可从多人舞台舞蹈或运动视频中自动识别、分类不同人物，并将选定人物渲染为**专业级 9:16 竖屏高清 MP4 直拍视频**。
+**OnlyYou-Fancam** 是一款基于人工智能的多目标跟踪与直拍（Fancam）自动生成系统。该系统可从多人舞台舞蹈或运动视频中自动识别、分类不同人物，并将选定人物渲染为**专业级 9:16 竖屏高清 MP4 直拍视频**。内置 **Model Context Protocol (MCP)** 协议服务，支持 Claude Desktop、Cursor 与 Antigravity 等 AI 助手直接调用生成。
 
 ### 核心特性
 - **绝对居中与纯黑边框填充**：当人物移动到舞台边缘甚至超出原画面时，视频严格维持 9:16 比例并将人物锁定在水平正中央，超出边界区域自动填充纯黑色，画面绝不拉伸变形。
 - **拒绝全景拉远（Zero Wide-Fallback）**：人物被遮挡或短暂离场时，镜头绝不盲目切换为广角全景，而是平稳驻留在最后已知位置，并在人物重现时优雅平滑归位。
 - **零相位超平滑防抖滤波**：引入双向零相位高斯滤波与自适应平滑算法，彻底消除跳舞摆手造成的镜头高频颤抖与前后拉扯（Mean Jerk $\le 0.01\text{ norm/s}^3$）。
+- **原生 AI MCP 协议支持**：无需额外第三方依赖，标准 JSON-RPC 2.0 stdio 服务，Claude 与 Cursor 等 AI 助手输入自然语言即可调用执行。
 - **极简苹果风格 Web 工作台**：采用深空黑与磨砂玻璃质感设计，集成了通用输入栏、文件拖拽、YouTube 自动解析与一键导出功能。
 - **纯正 Apache 2.0 开源协议**：模型权重在首次运行时按需下载，源代码仓库不捆绑任何 AGPL 权重文件，企业与个人皆可安全商用。
 
-### 快速开始
-```bash
-git clone https://github.com/Aminoragit/OnlyYou-Fancam.git
-cd OnlyYou-Fancam
-pip install -r requirements.txt
-
-# 启动 Web 工作台
-python main.py
+### Claude Desktop 配置示例
+在 `claude_desktop_config.json` 中添加：
+```json
+{
+  "mcpServers": {
+    "onlyyou-fancam": {
+      "command": "python",
+      "args": ["/path/to/OnlyYou-Fancam/mcp_server.py"]
+    }
+  }
+}
 ```
 
 ---
