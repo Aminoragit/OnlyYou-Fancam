@@ -35,7 +35,7 @@ def get_ffmpeg_path() -> str:
 FFMPEG_EXE = get_ffmpeg_path()
 
 # Pipeline configuration
-DEFAULT_SCAN_FPS = 4.0          # Sampling rate for Fast Lane (3~5 fps is ideal for 60s CPU target)
+DEFAULT_SCAN_FPS = 8.0          # Sampling rate for Fast Lane (6~10 fps for continuous dance tracking)
 DETECTOR_INPUT_SIZE = (640, 640) # Standard input size for YOLOv8 ONNX
 DETECTOR_CONF_THRESH = 0.30
 NMS_IOU_THRESH = 0.45

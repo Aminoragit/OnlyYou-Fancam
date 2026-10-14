@@ -127,11 +127,18 @@ class PersonDetector:
         indices = cv2.dnn.NMSBoxes(boxes, confidences, self.conf_thresh, NMS_IOU_THRESH)
         results = []
         if len(indices) > 0:
+            max_bh = max((boxes[i][3] for i in indices.flatten()), default=0)
             for idx in indices.flatten():
                 bx, by, bw, bh = boxes[idx]
                 x2 = min(orig_w, bx + bw)
                 y2 = min(orig_h, by + bh)
                 conf = confidences[idx]
+
+                # Filter foreground audience clutter (seated/standing crowd at bottom edge with small heights)
+                if max_bh >= int(0.24 * orig_h):
+                    if y2 > int(0.80 * orig_h) and bh < int(0.26 * orig_h) and bh < int(0.65 * max_bh):
+                        continue
+
                 results.append({
                     'box': [bx, by, x2, y2],
                     'conf': round(conf, 3),

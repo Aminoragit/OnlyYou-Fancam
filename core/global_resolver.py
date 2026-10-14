@@ -80,13 +80,30 @@ class GlobalResolver:
         # Lower bound K_min is the true maximum simultaneous people seen in any single frame
         k_min = max((len(ts) for ts in frame_occupancy.values()), default=1)
 
-        # 2. Build Cannot-Link matrix based on true co-visibility
+        # 2. Build Cannot-Link matrix based on true co-visibility & kinematic velocity limits
         cannot_link = np.zeros((n, n), dtype=bool)
         for i in range(n):
             for j in range(i + 1, n):
-                if check_overlap(tracklets[i], tracklets[j]):
+                t1, t2 = tracklets[i], tracklets[j]
+                if check_overlap(t1, t2):
                     cannot_link[i, j] = True
                     cannot_link[j, i] = True
+                else:
+                    # Kinematic velocity check: prevent merging tracklets of different performers
+                    if t1.end_t_ms <= t2.start_t_ms:
+                        gap_sec = (t2.start_t_ms - t1.end_t_ms) / 1000.0
+                        dx = t2.observations[0]['norm_box'][0] - t1.observations[-1]['norm_box'][0]
+                        dy = t2.observations[0]['norm_box'][1] - t1.observations[-1]['norm_box'][1]
+                    else:
+                        gap_sec = (t1.start_t_ms - t2.end_t_ms) / 1000.0
+                        dx = t1.observations[0]['norm_box'][0] - t2.observations[-1]['norm_box'][0]
+                        dy = t1.observations[0]['norm_box'][1] - t2.observations[-1]['norm_box'][1]
+
+                    dist = (dx**2 + dy**2)**0.5
+                    # Performer cannot teleport across stage (> 0.18 screen width in short gap, or > 0.32 screen/sec)
+                    if (gap_sec < 1.5 and dist > 0.18) or (gap_sec > 0 and (dist / gap_sec) > 0.32):
+                        cannot_link[i, j] = True
+                        cannot_link[j, i] = True
 
         # 3. Compute pairwise visual appearance similarity
         sim_matrix = np.zeros((n, n), dtype=np.float32)
@@ -164,10 +181,11 @@ class GlobalResolver:
         max_cluster_obs = max((item['total_obs'] for item in raw_clusters), default=1)
         min_presence_obs = max(6, int(max_cluster_obs * 0.28))
 
-        # Retain at least k_min co-visible performers, plus performers with substantial presence
+        # Retain valid stage performers with substantial presence
         retained = []
         for idx, item in enumerate(raw_clusters):
-            is_core = (idx < k_min)
+            is_valid_size = (item['mean_h'] >= 0.20)
+            is_core = (idx < k_min) and is_valid_size
             is_substantial = (item['total_obs'] >= min_presence_obs and item['mean_h'] >= 0.22 and item['max_conf'] >= 0.60)
             if is_core or is_substantial:
                 retained.append(item)

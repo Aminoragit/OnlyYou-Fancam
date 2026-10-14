@@ -94,7 +94,7 @@ class Tracklet:
         return self.observations[-1]['box']
 
 class ShotTracker:
-    def __init__(self, iou_thresh: float = 0.30, max_lost_frames: int = 4):
+    def __init__(self, iou_thresh: float = 0.22, max_lost_frames: int = 6):
         self.iou_thresh = iou_thresh
         self.max_lost_frames = max_lost_frames
         self.tracklet_counter = 0
@@ -131,17 +131,32 @@ class ShotTracker:
             candidates = []
             for t_idx, tracklet in enumerate(self.active_tracklets):
                 last_box = tracklet.last_box
+                last_cx = (last_box[0] + last_box[2]) / (2.0 * orig_w)
+                last_cy = (last_box[1] + last_box[3]) / (2.0 * orig_h)
+                last_h = (last_box[3] - last_box[1]) / float(orig_h)
+
                 for d_idx, det in enumerate(detections):
                     iou = compute_iou(last_box, det['box'])
-                    if iou >= self.iou_thresh:
-                        candidates.append((iou, t_idx, d_idx))
+                    cur_cx, cur_cy = det['norm_box'][0], det['norm_box'][1]
+                    cur_h = det['norm_box'][3]
+                    dist = ((last_cx - cur_cx)**2 + (last_cy - cur_cy)**2)**0.5
+                    size_ratio = min(last_h, cur_h) / max(1e-5, max(last_h, cur_h))
 
-            # Highest IoU match takes priority
+                    # Combine IoU with spatial proximity for dynamic dance movements
+                    score = iou
+                    if dist <= 0.08 and size_ratio >= 0.65:
+                        proximity_score = max(0.0, 1.0 - (dist / 0.08)) * 0.75
+                        score = max(score, proximity_score)
+
+                    if score >= self.iou_thresh:
+                        candidates.append((score, t_idx, d_idx))
+
+            # Highest association score match takes priority
             candidates.sort(key=lambda x: x[0], reverse=True)
 
             matched_tracks = set()
             matched_dets = set()
-            for iou, t_idx, d_idx in candidates:
+            for score, t_idx, d_idx in candidates:
                 if t_idx not in matched_tracks and d_idx not in matched_dets:
                     matches.append((t_idx, d_idx))
                     matched_tracks.add(t_idx)

@@ -80,48 +80,49 @@ class CameraPlanner:
                 {'t_ms': self.duration_ms, 'cx': 0.5, 'cy': 0.5, 'w': 1.0, 'h': 1.0, 'state': 'fallback'}
             ]
 
-        # 1. Compute raw target viewport with Dead-Zone Filtering
-        # Dead-zones in normalized units: 0.025 ≈ 18px horizontal, 0.020 ≈ 23px vertical
-        DEADZONE_X = 0.028
-        DEADZONE_Y = 0.022
-        DEADZONE_ZOOM = 0.035
+        # 1. Dynamic Zoom & Centering to Maintain Consistent Person Size
+        # Target: Performer occupies ~70% of 9:16 vertical frame with 14% headroom & 16% footroom
+        TARGET_PERSON_HEIGHT_RATIO = 0.70
+        HEADROOM_RATIO = 0.14
+        DEADZONE_X = 0.025
+        DEADZONE_Y = 0.020
+        DEADZONE_ZOOM = 0.030
 
         keyed_viewports = []
         last_cx = raw_obs[0]['cx']
         last_cy = raw_obs[0]['cy']
-        last_h = min(1.0, max(0.48, raw_obs[0]['h'] * 1.38))
+        init_crop_h = min(1.0, max(0.22, raw_obs[0]['h'] / TARGET_PERSON_HEIGHT_RATIO))
+        last_h = init_crop_h
 
         for o in raw_obs:
             person_h = o['h']
             person_w = o['w']
 
-            # Target crop height with zoom dead-zone
-            raw_crop_h = min(1.0, max(0.48, person_h * 1.38))
+            # Dynamically scale crop_h so the person maintains a consistent on-screen size (70% of frame)
+            ideal_crop_h = person_h / TARGET_PERSON_HEIGHT_RATIO
+            raw_crop_h = min(1.0, max(0.22, ideal_crop_h))
             crop_h = apply_deadzone(raw_crop_h, last_h, DEADZONE_ZOOM)
             last_h = crop_h
 
             crop_w = crop_h * self.norm_aspect
 
+            # Expand if person's lateral motion/arms extend beyond crop width
             if crop_w < person_w * 1.25:
-                crop_w = min(1.0, person_w * 1.25)
-                crop_h = crop_w / self.norm_aspect
+                crop_w = person_w * 1.25
+                crop_h = min(1.0, crop_w / self.norm_aspect)
 
-            if crop_w > 1.0:
-                crop_w = 1.0
-                crop_h = crop_w / self.norm_aspect
-
-            # Headroom calculation (keep head around top 16% ~ 20%)
+            # Headroom calculation: keep head 14% below top of crop
             head_y = o['cy'] - person_h / 2.0
-            raw_target_cy = head_y + crop_h * 0.33
+            raw_target_cy = head_y + (0.50 - HEADROOM_RATIO) * crop_h
 
-            # Apply Dead-Zone to center coordinates
+            # Apply dead-zone to position coordinates
             cx = apply_deadzone(o['cx'], last_cx, DEADZONE_X)
             cy = apply_deadzone(raw_target_cy, last_cy, DEADZONE_Y)
             last_cx = cx
             last_cy = cy
 
-            # Center the subject directly: keep person dead-center even at stage edges
-            # (Out-of-bounds area is padded with black per user specification)
+            # Keep subject dead-center horizontally and vertically
+            # Out-of-bounds area is padded with black per user specification
             cx_clamped = float(np.clip(cx, 0.0, 1.0))
             cy_clamped = float(np.clip(cy, 0.0, 1.0))
 
