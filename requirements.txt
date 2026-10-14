@@ -1,0 +1,10 @@
+# AutoFancam Local — Core Dependencies
+# All dependencies are permissive (Apache-2.0 / MIT / BSD / Unlicense) compatible
+
+opencv-python>=4.8.0      # Apache-2.0 (Computer vision & DNN inference)
+numpy>=1.24.0             # BSD-3-Clause (Mathematical & array operations)
+fastapi>=0.100.0          # MIT (Modern, fast web framework)
+uvicorn>=0.23.0           # BSD-3-Clause (Lightning-fast ASGI server)
+pydantic>=2.0.0           # MIT (Data validation and settings management)
+imageio-ffmpeg>=0.4.8     # BSD-2-Clause (Cross-platform FFmpeg wrapper)
+yt-dlp>=2024.0.0          # The Unlicense / Public Domain (YouTube downloader)

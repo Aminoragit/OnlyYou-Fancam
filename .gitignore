@@ -1,0 +1,40 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# Storage & Temporary Output Files
+storage/jobs/
+storage/uploads/
+storage/downloads/
+storage/test_export/
+storage/*.png
+*.tmp
+*.mp4
+*.webm
+
+# Pretrained AI Models (Downloaded on-demand at runtime to preserve clean Apache-2.0 license)
+models/*.onnx
+models/*.pt
+models/*.bin
+models/*.engine
+!models/.gitkeep
+
+# Large Test Video Data
+storage/test_data/*.mp4
+storage/test_data/*.webm
+storage/test_data/debug_frames/
+!storage/.gitkeep
+!storage/test_data/.gitkeep

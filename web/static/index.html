@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoFancam — AI Fancam Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%230071e3'/><polygon points='40,30 70,50 40,70' fill='white'/></svg>">
+  <link rel="stylesheet" href="/static/style.css?v=20261014_1715">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Critical Inline Fallback Styles to Prevent FOUC */
+    body { background-color: #000; color: #fff; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif; }
+    .omnibar-container { display: flex; align-items: center; max-width: 760px; width: 100%; margin: 0 auto; }
+    .omnibar-input { flex: 1; min-width: 200px; }
+    .icon-btn, .action-btn { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <!-- Apple-Style Minimal Navigation -->
+  <header class="nav-bar">
+    <div class="nav-brand">
+      <span class="brand-title">AutoFancam</span>
+      <span class="brand-badge">Studio</span>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-demo-btn" id="btnRunDemo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>데모 영상 체험</span>
+      </button>
+      <div class="nav-status" id="systemStatus">
+        <span class="status-dot"></span>
+        <span class="status-text" id="systemStatusText">준비됨</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Hero Header -->
+    <section class="hero-section">
+      <h1 class="hero-title">비디오를 직캠으로, 완벽하게.</h1>
+      <p class="hero-sub">AI가 무대 속 인물을 자동 식별하고 9:16 세로 직캠 MP4를 생성합니다.</p>
+    </section>
+
+    <!-- Universal Omnibar & Dropzone -->
+    <section class="omnibar-section" id="dropZone">
+      <input type="file" id="fileUploadInput" accept="video/*" style="display: none;">
+      
+      <div class="omnibar-container">
+        <div class="omnibar-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          </svg>
+        </div>
+        
+        <input 
+          type="text" 
+          id="omniInput" 
+          class="omnibar-input" 
+          placeholder="동영상 파일 경로 또는 유튜브 링크를 입력하세요..." 
+          autocomplete="off"
+          spellcheck="false"
+        >
+
+        <button class="icon-btn" id="btnUploadTrigger" title="로컬 파일 선택">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </button>
+
+        <button class="action-btn" id="btnStartJob">
+          <span>생성</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <div class="drop-hint">
+        <span>파일을 끌어다 놓거나, 유튜브 링크를 붙여넣고 Enter를 누르세요</span>
+      </div>
+
+      <!-- Activity Progress (Apple Dynamic Island) -->
+      <div class="activity-panel" id="activityPanel" style="display: none;">
+        <div class="activity-header">
+          <span class="activity-label" id="activityLabel">영상 분석 준비 중...</span>
+          <span class="activity-percent" id="activityPercent">0%</span>
+        </div>
+        <div class="activity-track">
+          <div class="activity-fill" id="activityFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Studio Workspace (Live when video is active) -->
+    <section class="workspace-section" id="workspaceSection" style="display: none;">
+      <!-- Left: 9:16 Cinema Screen -->
+      <div class="cinema-column">
+        <div class="cinema-frame">
+          <div class="cinema-glass-header">
+            <span class="glass-pill" id="hudPerson">선택된 인물 없음</span>
+            <span class="glass-pill" id="hudRatio">9:16 Full HD</span>
+          </div>
+
+          <div class="cinema-stage">
+            <video id="sourceVideo" playsinline preload="auto" muted></video>
+          </div>
+
+          <div class="cinema-controls">
+            <button class="play-toggle-btn" id="playBtn" title="재생/일시정지">
+              <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+
+            <span class="time-text" id="curTimeText">0:00</span>
+            <input type="range" class="cinema-seeker" id="seekBar" min="0" max="100" value="0">
+            <span class="time-text" id="durTimeText">0:00</span>
+
+            <button class="mute-toggle-btn" id="muteBtn" title="음소거 토글">
+              <svg id="unmuteIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Performers & Completed Downloads -->
+      <div class="sidebar-column">
+        <div class="glass-card">
+          <div class="card-header">
+            <h2 class="card-heading">출연자</h2>
+            <span class="count-pill" id="performersCountPill">0명</span>
+          </div>
+          <div class="performers-shelf" id="membersGrid"></div>
+        </div>
+
+        <div class="glass-card" style="margin-top: 20px;">
+          <div class="card-header">
+            <h2 class="card-heading">생성된 직캠</h2>
+            <span class="count-pill ready" id="exportsCountPill">0개 완료</span>
+          </div>
+          <div class="exports-shelf" id="exportList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty State Guide (Visible when no video is loaded) -->
+    <section class="guide-section" id="emptyGuideSection">
+      <div class="guide-grid">
+        <div class="guide-card">
+          <div class="guide-icon">🎯</div>
+          <h3 class="guide-title">완벽한 중앙 구도 유지</h3>
+          <p class="guide-desc">출연자가 화면 외곽으로 이동해도 9:16 비율과 중앙 정렬을 엄격히 유지하며, 초과 영역은 블랙 패딩 처리됩니다.</p>
+        </div>
+        <div class="guide-card">
+          <div class="guide-icon">🚫</div>
+          <h3 class="guide-title">와이드 전환 없는 자연스러운 추적</h3>
+          <p class="guide-desc">무대 퇴장이나 일시 미검출 시 와이드로 빠지지 않고 마지막 위치를 유지한 뒤, 재등장 시 부드럽게 글라이드합니다.</p>
+        </div>
+        <div class="guide-card">
+          <div class="guide-icon">⚡</div>
+          <h3 class="guide-title">H.264 Faststart & 무손실 오디오</h3>
+          <p class="guide-desc">웹 스트리밍에 즉시 반응하는 Moov Atom Faststart 최적화와 샘플 정밀 A/V 동기화가 적용됩니다.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=20261014_1715"></script>
+</body>
+</html>
